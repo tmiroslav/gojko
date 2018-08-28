@@ -1,0 +1,7 @@
+---
+
+- name: restart postgresql
+  service: name=postgresql-9.6 state=restarted
+
+- name: db initialization 
+  command: /usr/pgsql-9.6/bin/postgresql96-setup initdb

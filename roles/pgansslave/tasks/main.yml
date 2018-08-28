@@ -1,0 +1,72 @@
+- name: install from repository
+  yum:
+    name: https://yum.postgresql.org/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
+    state: present 
+
+- name: install pgansslave
+  yum: name={{ item }} update_cache=true state=installed
+  with_items:
+   - postgresql96-server
+   - postgresql96-contrib
+   - python-psycopg2
+  tags: packages
+#  notify:
+#   - db initialization
+
+#- name: initdb
+#  command: /usr/pgsql-9.6/bin/postgresql96-setup initdb
+
+- name: start postgreSQL db
+  service: name=postgresql-9.6 state=started enabled=yes
+
+- name: setting password for db user postgres
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    name: "{{db_user}}"
+    password: "{{db_password}}"
+
+- name: stop postgreSQL
+  service: name=postgresql-9.6 state=stopped
+
+- name: move db data
+  file:
+    path: /var/lib/pgsql/9.6/data
+    state: absent  
+
+- name: create new data directory
+  become: yes
+  become_user: postgres
+  file:
+     path: /var/lib/pgsql/9.6/data
+     state: directory
+     mode: 0700
+     owner: postgres
+     group: postgres
+     recurse: yes
+
+- name: take data backup from master
+  become: yes
+  become_user: postgres
+  shell: export PGPASSWORD="{{ replica_pass }}" && /usr/pgsql-9.6/bin/pg_basebackup -h 172.31.20.210 -U replica -D /var/lib/pgsql/9.6/data -P -v --xlog-method=stream 2>&1
+
+- name: change postgreSQL config file
+  become: yes
+  become_user: postgres
+  template:
+   src: postgresql.conf
+   dest: /var/lib/pgsql/9.6/data/postgresql.conf
+
+- name: set recovery config
+  become: yes
+  become_user: postgres
+  copy:
+     src: recovery.conf
+     dest: /var/lib/pgsql/9.6/data/recovery.conf
+     mode: 0600
+
+- name: start postgreSQL slave
+  service: name=postgresql-9.6 state=started
+
+
+

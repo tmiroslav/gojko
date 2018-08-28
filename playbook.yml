@@ -1,0 +1,15 @@
+- name: create pgsql master
+  hosts: pgansmaster
+  become: yes
+  vars_files:
+  - vars/main.yml
+
+  roles:
+  - pgansmaster
+
+  handlers:
+  - name: postgreSQL restart
+    service: name=postgresql-9.6 state=restarted
+    command: touch /tmp/testmaster
+  - name: test1
+    command: /usr/pgsql-9.6/bin/postgresql96-setup initdb

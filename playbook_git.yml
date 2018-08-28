@@ -1,0 +1,6 @@
+- name: install GIT
+  hosts: localhost
+  become: yes
+
+  roles:
+  - git

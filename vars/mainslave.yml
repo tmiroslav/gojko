@@ -1,0 +1,9 @@
+---
+db_user: postgres
+db_password: postgres
+replica_user: replica
+replica_pass: replica
+replica_role: replication
+localhost: 172.31.30.40
+state: 'on'
+update_yum_cache: true

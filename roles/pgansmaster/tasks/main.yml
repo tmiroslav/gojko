@@ -1,0 +1,63 @@
+- name: install pgmaster from repository
+  yum:
+    name: https://yum.postgresql.org/9.6/redhat/rhel-7-x86_64/pgdg-centos96-9.6-3.noarch.rpm
+    state: present 
+
+- name: install postgreSQL96
+  yum: name={{ item }} update_cache=true state=installed
+  with_items:
+   - postgresql96-server
+   - postgresql96-contrib
+   - python-psycopg2
+  tags: packages
+#  notify: db initialization 
+
+#- name: db initialization
+#  command: /usr/pgsql-9.6/bin/postgresql96-setup initdb
+
+- name: start db
+  service: name=postgresql-9.6 state=started enabled=yes
+
+- name: setting password for db user postgres
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    name: "{{db_user}}"
+    password: "{{db_password}}"
+
+- name: setting postgreSQL config file
+  become: yes
+  become_user: postgres
+  template:
+   src: postgresql.conf
+   dest: /var/lib/pgsql/9.6/data/postgresql.conf
+
+- name: create archive directory
+  become: yes
+  become_user: postgres
+  file:
+     path: /var/lib/pgsql/9.6/archive
+     state: directory
+     mode: 0700
+     owner: postgres
+     group: postgres
+     recurse: yes
+
+- name: setting  pg_hba config file
+  become: yes
+  become_user: postgres
+  copy:
+     src: pg_hba.conf 
+     dest: /var/lib/pgsql/9.6/data/pg_hba.conf
+     mode: 0700
+  notify:
+     - postgreSQL restart
+
+- name: create user replica
+  become: yes
+  become_user: postgres
+  postgresql_user:
+    name: "{{replica_user}}"
+    password: "{{replica_pass}}"
+    role_attr_flags: "{{replica_role}}"
+
